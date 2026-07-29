@@ -1,0 +1,794 @@
+You are an expert in Arabic grammatical error annotation for the DAGC-ATS database.
+
+The DAGC-ATS database is generated using:
+
+• Stanza NLP
+• Universal Dependencies (UD)
+• XPOS (PADT tags when available)
+• Fundamental Principle of Counting (FPC)
+
+The objective is NOT to generate grammatical errors.
+
+The objective is ONLY to convert one Arabic sentence into one DAGC-ATS database record and calculate the grammatical error possibilities.
+
+====================================================
+INPUT
+====================================================
+
+Analyze ONLY the following Arabic sentence.
+
+Sentence:
+{{PUT_YOUR_SENTENCE_HERE}}
+====================================================
+STEP 1 – STANZA ANALYSIS
+====================================================
+
+Analyze the sentence exactly as Stanza would.
+The Stanza linguistic analysis is assumed to be already available.
+
+The model MUST use the extracted Stanza features to derive the DAGC-ATS representation.
+
+After generating the representation, it MUST explicitly output the grammatical error feature space used in the FPC calculation.
+The Dependency Relation must be copied exactly as returned by Stanza.
+
+Do NOT assume any dependency relation.
+
+Do NOT assign fixed dependency labels such as root, nsubj, obj, amod, obl, or any other relation.
+
+Always use the exact Dependency Relation produced by Stanza for the analyzed sentence.
+
+Never infer, predict, or modify linguistic features manually.
+
+For every token extract, extract:
+
+• Word
+• UPOS
+• XPOS (if available)
+• Gender
+• Number
+• Case
+• Definiteness
+• Dependency Relation
+
+If a feature does not exist, output:
+
+NONE
+
+====================================================
+STEP 2 – DAGC-ATS WORD REPRESENTATION
+====================================================
+
+The representation is a DAGC-ATS encoding generated from the Stanza analysis.
+
+It is NOT part of the original Stanza output.
+
+Generate one representation for every word according to the following rules.
+
+----------------------------------------------------
+Rule 1 – NOUN
+----------------------------------------------------
+
+Representation
+
+NOUN
+Case
+Definiteness
+Number
+Dependency
+
+Example
+
+NOUN Nom Def Sing <Dependency>
+
+----------------------------------------------------
+Rule 2 – ADJ
+----------------------------------------------------
+
+Representation
+
+ADJ
+Case
+Definiteness
+Number
+Dependency
+
+Example
+
+ADJ Nom Ind Sing <Dependency>
+
+----------------------------------------------------
+Rule 3 – PROPN
+----------------------------------------------------
+
+Always convert
+
+PROPN
+
+to
+
+X
+
+Representation
+
+X
+Case
+Definiteness
+Number
+Dependency
+
+Example
+
+X Nom Def Sing <Dependency>
+
+----------------------------------------------------
+Rule 4 – DET
+----------------------------------------------------
+
+Keep the XPOS tag exactly as produced by Stanza.
+
+Never modify it.
+
+Never normalize it.
+
+Never translate it.
+
+Example
+
+SD----MS1-
+
+Representation
+
+DET
+SD----MS1-
+Case
+Definiteness
+Number
+Dependency
+
+----------------------------------------------------
+Rule 5 – PRON
+----------------------------------------------------
+
+Append
+
+PronType=Prs
+
+immediately after PRON.
+
+Representation
+
+PRON PronType=Prs
+Case
+Number
+Dependency
+Example
+
+PRON PronType=Prs Nom Sing <Dependency>
+
+----------------------------------------------------
+Rule 6 – VERB
+----------------------------------------------------
+
+Append the verb tense immediately after VERB.
+
+Representation
+
+VERB
+VerbForm/Tense (exactly as returned by Stanza)
+Dependency
+Examples
+
+VERB Past root
+
+VERB Pres root
+
+----------------------------------------------------
+Rule 7 – ADP
+----------------------------------------------------
+
+Append
+
+Prep
+
+immediately after ADP.
+
+Representation
+
+ADP
+Prep
+case
+Head_UPOS
+Head_Dependency
+
+Where
+
+Prep = fixed label indicating a preposition.
+
+Head_UPOS = the UPOS of the noun governed by the preposition.
+
+Head_Dependency = the dependency relation of the governed word.
+
+Examples
+
+?? ???????
+
+ADP Prep case NOUN <Dependency>
+
+??? ????
+
+ADP Prep case X obl
+
+If the governed word is PROPN,
+
+convert it to X.
+
+----------------------------------------------------
+Rule 8 – Dependency Relation = obj
+----------------------------------------------------
+
+If the Dependency Relation is obj,
+
+keep the original UPOS (after applying any conversion rules such as PROPN ? X),
+
+replace only the Case with Acc,
+
+and keep the Dependency Relation as obj.
+
+----------------------------------------------------
+Rule 9 – Dependency Relation = iobj
+----------------------------------------------------
+
+If the Dependency Relation is iobj,
+
+keep the original UPOS (after applying any conversion rules such as PROPN ? X),
+
+replace only the Case with Acc,
+
+and keep the Dependency Relation as iobj.
+
+----------------------------------------------------
+Rule 10 – Other UPOS
+----------------------------------------------------
+
+For any other UPOS
+(AUX, ADV, PART, CCONJ, SCONJ, NUM, PUNCT, X)
+
+Representation
+
+UPOS
+Dependency
+NONE
+
+----------------------------------------------------
+Rule 11 – Missing Features
+----------------------------------------------------
+
+If any feature does not exist,
+
+write
+
+NONE
+Rule 12 – Dependency Relation
+
+For every representation,
+
+replace <Dependency>
+
+with the exact Dependency Relation returned by Stanza.
+
+Examples
+
+NOUN Nom Def Sing root
+
+ADJ Nom Ind Sing nsubj
+
+NOUN Acc Ind Sing obj
+
+NOUN Gen Def Sing obl
+
+Never assign dependency relations manually.
+----------------------------------------------------
+Rule 13 – Representation Order
+----------------------------------------------------
+
+The order of attributes inside each representation must always follow the rules above.
+
+Do not reorder attributes.
+
+Do not omit existing attributes.
+
+Do not add attributes that are not specified for the corresponding UPOS.
+
+The representation must be generated only from the Stanza output.
+
+====================================================
+STEP 3 – ERROR FEATURES
+====================================================
+
+Only the following grammatical features are considered sources of grammatical errors.
+
+Feature Freedom Values
+
+Gender = 2
+
+Possible values
+
+Masc
+Fem
+
+------------------------------------
+
+Number = 3
+
+Possible values
+
+Sing
+Dual
+Plur
+
+------------------------------------
+
+Case = 3
+
+Possible values
+
+Nom
+Acc
+Gen
+
+------------------------------------
+
+Definiteness = 3
+
+Possible values
+
+Def
+Ind
+Cons
+
+If a feature does not exist,
+
+its Freedom value = 1.
+
+Ignore all remaining linguistic features.
+
+====================================================
+STEP 4 – FUNDAMENTAL PRINCIPLE OF COUNTING (FPC)
+====================================================
+
+For every word calculate
+
+Word_Error_Possibilities
+
+=
+
+Gender_F × Number_F × Case_F × Def_F
+
+If one or more features are unavailable,
+
+their Freedom value is 1.
+
+Examples
+
+VERB
+
+Gender_F = 1
+
+Number_F = 1
+
+Case_F = 1
+
+Def_F = 1
+
+Word_Error_Possibilities = 1
+
+Then calculate
+
+Sentence_Error_Possibilities
+
+=
+
+Product of all Word_Error_Possibilities.
+Each representation must be returned as one single string separated by spaces.
+
+Example
+
+NOUN Nom Def Sing root
+
+PRON PronType=Prs Nom Sing nsubj
+
+ADP Prep case NOUN obl
+====================================================
+STEP 4.5 – ERROR FEATURE SPACE
+====================================================
+
+For every word, output the grammatical feature space used in the FPC calculation.
+
+The output must contain exactly four fields.
+
+Gender_Values
+
+Number_Values
+
+Case_Values
+
+Definiteness_Values
+
+Example
+
+Gender_Values = Masc|Fem
+
+Number_Values = Sing|Dual|Plur
+
+Case_Values = Nom|Acc|Gen
+
+Definiteness_Values = Def|Ind|Cons
+
+If a feature is unavailable according to the Stanza analysis,
+
+output
+
+NONE
+
+Do NOT enumerate combinations.
+
+Only report the feature space.
+====================================================
+STEP 4.6 – GRAMMATICAL ERROR POSSIBILITIES
+====================================================
+
+For every word, generate the grammatical error possibility space derived ONLY from the grammatical features used in the FPC calculation.
+
+The grammatical features are:
+
+• Gender
+• Number
+• Case
+• Definiteness
+
+For each feature:
+
+If the feature exists according to the Stanza analysis,
+list all possible grammatical values.
+
+Example
+
+Gender:
+Masc | Fem
+
+Number:
+Sing | Dual | Plur
+
+Case:
+Nom | Acc | Gen
+
+Definiteness:
+Def | Ind | Cons
+
+If a feature does not exist according to Stanza,
+output
+
+NONE
+
+Do NOT generate Arabic words.
+
+Do NOT generate grammatical variants.
+
+Do NOT generate complete sentences.
+
+Do NOT enumerate all combinations.
+
+Return only the grammatical possibility space for each feature.
+
+Example
+
+Gender=Masc|Fem;
+Number=Sing|Dual|Plur;
+Case=Nom|Acc|Gen;
+Definiteness=Def|Ind|Cons
+====================================================
+STEP 4.7 – FULL GRAMMATICAL POSSIBILITY SPACE
+====================================================
+
+After generating the original DAGC-ATS representation and computing
+Word_Error_Possibilities using the Fundamental Principle of Counting (FPC),
+
+generate the complete grammatical possibility space for each word.
+
+The possibility space is generated ONLY from the grammatical features used
+in the FPC calculation:
+
+• Gender
+• Number
+• Case
+• Definiteness
+
+Rules
+
+1. Enumerate ALL possible combinations of the grammatical features.
+
+2. The number of generated representations MUST equal
+
+Gender_F × Number_F × Case_F × Def_F
+
+3. Modify ONLY the grammatical features.
+
+4. Keep all remaining attributes unchanged, including:
+
+• UPOS
+• XPOS
+• Dependency Relation
+• PronType
+• VerbForm/Tense
+• Head_UPOS
+• Head_Dependency
+
+5. Each generated representation must be returned as a single-line string.
+
+6. Number every generated representation sequentially starting from 1.
+
+7. If a grammatical feature does not exist according to the Stanza analysis,
+its Freedom value equals 1 and its value must remain unchanged.
+
+8. Do NOT generate Arabic words.
+
+9. Do NOT generate Arabic sentences.
+
+10. Generate ONLY DAGC-ATS representations.
+
+11. Preserve the attribute order defined in STEP 2.
+
+====================================================
+OUTPUT OF STEP 4.7
+====================================================
+
+Columns
+
+Word
+
+Possibility_ID
+
+Representation
+
+Example
+
+Word              الرجل
+
+Original Representation
+
+NOUN Nom Def Masc Sing nsubj
+
+Generated Possibility Space
+
+1   NOUN Nom Def Masc Sing nsubj
+2   NOUN Acc Def Masc Sing nsubj
+3   NOUN Gen Def Masc Sing nsubj
+4   NOUN Nom Def Masc Dual nsubj
+5   NOUN Acc Def Masc Dual nsubj
+6   NOUN Gen Def Masc Dual nsubj
+7   NOUN Nom Def Masc Plur nsubj
+8   NOUN Acc Def Masc Plur nsubj
+9   NOUN Gen Def Masc Plur nsubj
+10  NOUN Nom Def Fem Sing nsubj
+11  NOUN Acc Def Fem Sing nsubj
+12  NOUN Gen Def Fem Sing nsubj
+13  NOUN Nom Def Fem Dual nsubj
+14  NOUN Acc Def Fem Dual nsubj
+15  NOUN Gen Def Fem Dual nsubj
+16  NOUN Nom Def Fem Plur nsubj
+17  NOUN Acc Def Fem Plur nsubj
+18  NOUN Gen Def Fem Plur nsubj
+
+Total Generated Representations = 18
+
+The number of generated representations MUST always equal
+Word_Error_Possibilities.
+====================================================
+STEP 5 – OUTPUT
+====================================================
+
+Return TWO tables.
+
+====================================================
+TABLE 1 – DAGC-ATS DATABASE RECORD
+====================================================
+
+Return ONLY one database record.
+
+Columns
+
+Sentence
+
+Word1_Representation
+Word2_Representation
+...
+WordN_Representation
+
+Word1_Error_Possibilities
+Word2_Error_Possibilities
+...
+WordN_Error_Possibilities
+
+Sentence_Error_Possibilities
+
+Each representation must be returned as one single string separated by spaces.
+
+Do NOT use line breaks inside a representation.
+
+====================================================
+TABLE 2 – FPC GRAMMATICAL POSSIBILITY RECORDS
+====================================================
+
+Generate all grammatical representations implied by the Fundamental Principle of Counting (FPC).
+
+For every word independently:
+
+Use ONLY the grammatical features that participate in FPC:
+
+• Gender
+• Number
+• Case
+• Definiteness
+
+Generate one representation for each possible value of ONE grammatical feature at a time while keeping all remaining features identical to the original Stanza analysis.
+
+Rules
+
+1. Change only ONE grammatical feature in each generated representation.
+
+2. Never change two features simultaneously.
+
+3. Keep UPOS unchanged.
+
+4. Keep Dependency Relation exactly as returned by Stanza.
+
+5. Keep XPOS unchanged.
+
+6. Keep PronType unchanged.
+
+7. Keep VerbForm/Tense unchanged.
+
+8. Keep Head_UPOS and Head_Dependency unchanged.
+
+9. If a grammatical feature does not exist for the token, do not generate records for that feature.
+
+10. Include the original representation as the first record.
+
+Return the records in tabular format.
+
+Columns
+
+Sentence
+
+Word
+
+Original_Representation
+
+Modified_Feature
+
+Feature_Value
+
+Generated_Representation
+
+Example
+
+Sentence | Word | Original_Representation | Modified_Feature | Feature_Value | Generated_Representation
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Original | Original | NOUN Nom Def Sing nsubj
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Case | Acc | NOUN Acc Def Sing nsubj
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Case | Gen | NOUN Gen Def Sing nsubj
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Number | Dual | NOUN Nom Def Dual nsubj
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Number | Plur | NOUN Nom Def Plur nsubj
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Gender | Fem | NOUN Nom Def Sing nsubj
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Definiteness | Ind | NOUN Nom Ind Sing nsubj
+
+????? ???? | ????? | NOUN Nom Def Sing nsubj | Definiteness | Cons | NOUN Nom Cons Sing nsubj
+
+Repeat this process for every word in the sentence.
+
+The total number of generated records must equal the total number of FPC grammatical possibilities generated independently for all words.
+
+The output must be directly exportable to Excel.
+
+Do NOT generate Arabic words.
+
+Do NOT generate corrected sentences.
+
+Do NOT enumerate combinations involving more than one feature change.
+====================================================
+OUTPUT FORMAT REQUIREMENTS
+====================================================
+
+Each Word(i)_Representation must be returned as ONE SINGLE STRING.
+
+Do NOT split a representation into multiple lines.
+
+Separate all attributes using a single space.
+
+The representation must exactly follow the corresponding rule in STEP 2.
+
+Examples
+
+NOUN Nom Def Sing nsubj
+
+ADJ Nom Ind Sing amod
+
+X Nom Def Sing nsubj
+
+DET SD----MS1- Nom Def Sing det
+
+PRON PronType=Prs Nom Sing nsubj
+
+VERB Past root
+
+VERB Pres advcl
+
+ADP Prep case NOUN obl
+
+ADP Prep case X obl
+
+UPOS Dependency NONE
+
+The output table must contain exactly one row.
+
+The number of Word(i)_Representation columns must equal the number of words in the sentence.
+
+The number of Word(i)_Error_Possibilities columns must equal the number of words.
+
+Do NOT create extra columns.
+
+Do NOT create empty columns.
+
+Do NOT wrap representations onto multiple lines.
+
+Every representation must be copied exactly into a single table cell.
+
+====================================================
+IMPORTANT RULES
+====================================================
+
+1. Analyze ONLY the input sentence.
+
+2. Use ONLY the Stanza pipeline output as the source of linguistic features.
+
+3. Never infer or modify linguistic features manually.
+
+4. Never generate grammatical variants.
+
+5. Never generate incorrect Arabic sentences.
+
+6. Never enumerate all grammatical combinations.
+
+7. Never modify the original sentence.
+
+8. Follow Stanza conventions.
+
+9. Follow Universal Dependencies (UD).
+
+10. Preserve every XPOS tag exactly as produced by Stanza.
+
+11. Preserve tags such as:
+
+SD----MS1-
+
+PronType=Prs
+
+12. Always convert PROPN to X.
+
+13. Use ONLY Gender, Number, Case, and Definiteness when calculating FPC.
+
+14. If a feature is missing, output NONE.
+
+15. If a feature is missing, its Freedom value = 1.
+
+16. Return ONLY the final database table.
+
+17. Do NOT include explanations.
+
+18. The output must be directly importable into the DAGC-ATS database.
