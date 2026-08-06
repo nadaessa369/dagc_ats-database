@@ -1,0 +1,43 @@
+from google.colab import drive
+drive.mount('/content/drive/')
+
+!pip install pandas pyxlsb -q
+import pandas as pd
+
+file = '/content/drive/MyDrive/Colab Notebooks/Inputbinary.xlsb'
+
+# الخطوة 1: اعرف أسماء كل الشيتات الموجودة فعليًا في الملف
+xls = pd.ExcelFile(file, engine='pyxlsb')
+print("الشيتات المتاحة:", xls.sheet_names)
+#الخطوة 2: اقرأ كل الشيتات دفعة واحدة
+# يقرأ كل الشيتات تلقائيًا بدون ما تكتب أسماءها يدويًا
+all_sheets = pd.read_excel(file, sheet_name=None, engine='pyxlsb')
+
+# all_sheets عبارة عن dict: {'اسم الشيت': DataFrame}
+for name, df in all_sheets.items():
+    print(f"--- الشيت: {name} --- الحجم: {df.shape}")
+    print(df.head(2))
+    print()
+#الخطوة 3: الوصول لشيت معين بالاسم
+sheet3 = all_sheets['verbal']
+print(sheet3.shape)
+print(sheet3.head())
+#
+combined = pd.concat(all_sheets.values(), ignore_index=True)
+print("الحجم بعد الدمج:", combined.shape)
+print(combined.head())
+#أو لو تvd] تحتفظ بمعرفة كل صف جاء من أي شيت:
+combined_list = []
+for sheet_name, df in all_sheets.items():
+    df = df.copy()
+    df['sheet_source'] = sheet_name
+    combined_list.append(df)
+
+combined = pd.concat(combined_list, ignore_index=True)
+print(combined.shape)
+print(combined['sheet_source'].value_counts())
+#
+# احفظ نسخة أسرع للاستخدام المتكرر
+for name, df in all_sheets.items():
+    df.to_parquet(f'/content/drive/MyDrive/Colab Notebooks/{name}.parquet')
+df = pd.read_parquet('/content/drive/MyDrive/Colab Notebooks/verbal.parquet')
